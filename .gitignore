@@ -1,0 +1,31 @@
+node_modules/
+dist/
+.sites-runtime/
+.env*
+!.env.example
+.DS_Store
+*.log
+test-results/
+playwright-report/
+.tools/
+artifacts/
+*.apk
+
+# Local caches and IDE state
+.pnpm-store/
+__pycache__/
+*.py[cod]
+xcuserdata/
+.swiftpm/
+
+# Separate Xcode starter project; the working iPad app is under ios/.
+/daily-ops/
+
+# Local signing settings and private signing material
+ios/signing.local.xcconfig
+*.ipa
+*.mobileprovision
+*.p12
+*.p8
+*.jks
+*.keystore

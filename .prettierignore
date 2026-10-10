@@ -1,0 +1,12 @@
+node_modules/
+dist/
+pnpm-lock.yaml
+test-results/
+playwright-report/
+.sites-runtime/
+android/
+.tools/
+artifacts/
+.pnpm-store/
+daily-ops/
+ios/signing.local.xcconfig

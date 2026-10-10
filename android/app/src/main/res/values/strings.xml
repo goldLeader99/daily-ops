@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Daily Ops</string>
+    <string name="title_activity_main">Daily Ops</string>
+    <string name="package_name">com.dailyops.dashboard</string>
+    <string name="custom_url_scheme">com.dailyops.dashboard</string>
+</resources>
