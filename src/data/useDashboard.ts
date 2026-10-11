@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { DashboardData } from '../domain/model';
-import { createRepository, STORAGE_KEY } from './repository';
+import { createRepository, parseData, STORAGE_KEY } from './repository';
 import { createNativeStorage, readNativeData } from './nativeStorage';
 import { isNative } from '../native';
+import { sharedContent } from '../sync/merge';
 
 export type Commit = (change: (current: DashboardData) => DashboardData) => boolean;
 export function useDashboard() {
@@ -62,7 +63,11 @@ export function useDashboard() {
   }, [repository]);
   const restore = (raw: string) => {
     try {
-      setData(repository.restore(raw));
+      const previous = data?.cloudSync;
+      const restored = sharedContent(parseData(raw));
+      const next = previous ? { ...restored, cloudSync: previous } : restored;
+      repository.save(next);
+      setData(next);
       setError('');
       return true;
     } catch (error) {
@@ -70,9 +75,24 @@ export function useDashboard() {
       return false;
     }
   };
-  const exportRaw = () =>
-    isNative && window.DailyOpsStorage
-      ? (readNativeData(window.DailyOpsStorage, window.localStorage) ?? '')
-      : repository.exportRaw();
-  return { data, error, commit, restore, exportRaw, setError };
+  const exportRaw = () => {
+    const raw =
+      isNative && window.DailyOpsStorage
+        ? (readNativeData(window.DailyOpsStorage, window.localStorage) ?? '')
+        : repository.exportRaw();
+    try {
+      return data?.cloudSync ? JSON.stringify(sharedContent(data)) : raw;
+    } catch {
+      return raw;
+    }
+  };
+  const read = useCallback(() => repository.load(), [repository]);
+  const saveSynced = useCallback(
+    (next: DashboardData) => {
+      repository.save(next);
+      setData(next);
+    },
+    [repository],
+  );
+  return { data, error, commit, restore, exportRaw, setError, read, saveSynced };
 }

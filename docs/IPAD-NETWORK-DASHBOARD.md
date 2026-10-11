@@ -1,6 +1,6 @@
 # iPad mini network dashboard
 
-Status: verified gateway source and installed network update, 2026-10-08. **Daily Ops 1.2.0 (build 6)** is signed and installed on the iPad mini 4. Its existing saved records were byte-identical before and after the update. The NETWORK row and detail view read actual WAN traffic directly from the XB10; the user reported the installed setup complete on 2026-10-10. Individual physical validation steps were not reported separately. See [IOS.md](IOS.md).
+Status on 2026-10-10: **Daily Ops 1.3.0 (build 8)** is signed and installed on the iPad mini 4. Its existing saved records were privately backed up and were byte-identical after the in-place update. The user confirmed cloud sync with the iPhone in both directions. The WAN counter source was verified on 2026-10-08, but live iPad readings are currently unavailable. The Mac receives no SSDP advertisement, and the previously configured service endpoint refuses connections. The user chose to leave network-speed troubleshooting for now; the optional home feed has not passed physical acceptance. See [IOS.md](IOS.md) and [CLOUD-SYNC.md](CLOUD-SYNC.md).
 
 ## Intended behavior
 

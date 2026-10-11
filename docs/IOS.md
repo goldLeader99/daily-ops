@@ -1,6 +1,28 @@
-# Daily Ops on iPad
+# Daily Ops on iPhone and iPad
 
-The iOS target uses Capacitor 8.5.2 and an iPadOS 15 deployment target. Native build, signing, installation, and physical-device results must be recorded separately; generating the project does not establish that it works on an iPad.
+The iOS target uses Capacitor 8.5.2, an iOS/iPadOS 15 deployment target, and both iPhone and iPad device families. Native build, signing, installation, and physical-device results must be recorded separately; generating the project does not establish that it works on a device.
+
+## iPhone verification on 2026-10-10
+
+**Sync update: Daily Ops 1.3.0, build 8, is installed on the physical iPhone 14 Pro.** The final signed build, deep/strict signature, bundled web assets, callback scheme, and phone authorization passed verification. CoreDevice installation succeeded and an installed-app query confirmed the version/build. Application Support records were byte-identical before and after the in-place installation. Automatic launch was initially denied because the iPhone was locked; the user subsequently opened the app, signed in, and confirmed **SYNCED** after sharing its dashboard.
+
+The update implements private account sync, durable offline edits, conflict review showing both values, a preserved pre-sync copy, iOS Keychain sessions, and optional home-iPad WAN sharing. All 44 unit tests and 20 browser tests passed; final conflict and backup checks passed separately. The cloud schema and exact native auth redirect are deployed. Live owner-isolation, stale-write, anonymous-denial, revision-protection, and traffic guards passed; disposable fixtures were rolled back, and Supabase's unfiltered Advisor Center reported no issues. A read-only live query confirmed one valid shared dashboard and one confirmed app account. See [CLOUD-SYNC.md](CLOUD-SYNC.md).
+
+**The physical iPad mini 4 on iPadOS 15.8.8 also has Daily Ops 1.3.0/build 8 installed.** Its existing records were privately backed up before the in-place update. Installation without the debugger succeeded, a separate installed-app query confirmed the version/build, and saved records were byte-identical afterward. The signed profile includes this iPad. The user confirmed **SYNCED** after connecting the same app account, then confirmed that a task added on the iPhone appeared on the iPad and completion from the iPad appeared on the iPhone. Live modem readings remain unavailable; the user explicitly chose to leave that optional troubleshooting for now.
+
+**Earlier safe-area update: Daily Ops 1.2.1, build 7, was installed on the physical iPhone 14 Pro running iOS 27.0.1.** CoreDevice installation succeeded, a separate query confirmed the installed version/build, and the updated app launched successfully. The phone's Application Support data file was privately backed up immediately before installation and was byte-identical after updating and launching. The app was updated in place.
+
+The user's physical screenshots of build 6 showed the status bar overlapping both the dashboard and clock headers. Build 7 adds `viewport-fit=cover` and system safe-area padding on all four sides of the dashboard and dialogs; bottom notifications also clear the home indicator. Responsive spacing keeps these insets instead of replacing them. The clock uses a compact layout on short landscape screens so its date remains visible. This follows [WebKit's viewport and safe-area guidance](https://webkit.org/blog/7929/designing-websites-for-iphone-x/).
+
+TypeScript, production/offline builds, and three browser checks passed: the existing clock behavior check, tablet/phone layout check, and a new safe-area geometry check covering phone portrait, phone landscape, iPad, and zero-inset layouts. Chromium uses supplied insets for this check; it does not emulate a physical cutout. A native iPhone 17 Pro simulator on iOS 26.3.1 separately built, installed, launched, and visually showed the dashboard below the status bar and Dynamic Island. The signed phone bundle passed deep/strict signature verification; its assets match the tested web build, the phone is included in its profile, and its identifier, team, and keychain groups are authorized. After the update, the user confirmed that both the dashboard and Clock headers look clear on the physical iPhone.
+
+The following records the original iPhone installation:
+
+**Daily Ops 1.2.0, build 6, was installed on the physical iPhone 14 Pro running iOS 27.0.1.** Xcode 26.3 paired with the phone; after the user enabled Developer Mode, CoreDevice reported Developer Mode enabled and DDI services available. The signed device build passed. Deep/strict signature verification passed with access to the Mac's signing keychain. The provisioning profile includes this phone, and the signed application identifier, team identifier, debug entitlement, and keychain groups are authorized by the profile. The profile also used for build 7 expires **2026-10-18 at 00:02:33 UTC (2026-10-17 at 20:02:33 EDT)**. Signing credentials and device identifiers remain outside this report.
+
+CoreDevice installation returned success, and a separate installed-app query confirmed version 1.2.0, build 6. The arm64 app includes both device families, bundled dashboard assets, a minimum OS of 15.0, and no development-server URL. TypeScript, all 34 unit tests, the production build, and the existing tablet/phone browser layout check passed before installation. The browser check is separate from physical iPhone validation.
+
+The first launch request was denied with iOS's signature/entitlements/developer-trust error. Signature and entitlement checks passed independently. After completing developer trust on the iPhone, the user confirmed that the Daily Ops dashboard opens. Physical first launch is confirmed by the user; backup/restore through the app, offline launch, and WAN readings on the physical phone have not yet been verified. Neither installation adds cloud sync: the iPhone and iPad still save their own local records.
 
 ## Verification on 2026-10-08
 

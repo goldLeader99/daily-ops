@@ -29,3 +29,10 @@ ios/signing.local.xcconfig
 *.p8
 *.jks
 *.keystore
+*.pem
+*.key
+
+# Local database tooling and private dashboard exports
+supabase/.temp/
+daily-ops-v1.json
+daily-ops-before-sync*.json

@@ -5,18 +5,22 @@ import { parseData } from '../data/repository';
 import { localDate } from '../domain/model';
 import { download } from '../utils/download';
 import { DashboardDevice, isNative, isAndroid, isIOS } from '../native';
+import { AccountSync } from './AccountSync';
+import type { CloudSync } from '../sync/useCloudSync';
 export function Settings({
   data,
   commit,
   restore,
   exportRaw,
   notify,
+  cloud,
 }: {
   data: DashboardData;
   commit: Commit;
   restore: (raw: string) => boolean;
   exportRaw: () => string;
   notify: (text: string) => void;
+  cloud: CloudSync;
 }) {
   const [pending, setPending] = useState<{ raw: string; data: DashboardData; name: string } | null>(
     null,
@@ -26,6 +30,7 @@ export function Settings({
   const [storageStatus, setStorageStatus] = useState('');
   return (
     <>
+      <AccountSync cloud={cloud} />
       <div className="settings-section">
         <h3>Display</h3>
         <label className="check-row">
@@ -108,6 +113,12 @@ export function Settings({
               />
               <span>Replace all current data with this backup.</span>
             </label>
+            {cloud.linked && (
+              <p className="helper">
+                Restored records will also sync to your shared dashboard and other connected
+                devices.
+              </p>
+            )}
             <div className="form-actions">
               <button
                 className="primary"
@@ -185,7 +196,7 @@ export function Settings({
             </button>
           </div>
         )}
-        <span className="eyebrow">DAILY OPS / VERSION 1.1.2 / DATA FORMAT 1</span>
+        <span className="eyebrow">DAILY OPS / VERSION 1.3.0 / DATA FORMAT 1</span>
       </div>
     </>
   );

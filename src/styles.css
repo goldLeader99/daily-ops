@@ -11,6 +11,10 @@
   --line: #344335;
   --surface: #101712;
   --dim: #1c2a1e;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
   color-scheme: dark;
 }
 * {
@@ -125,9 +129,13 @@ svg {
   flex-shrink: 0;
 }
 .app {
+  --app-top: 26px;
+  --app-side: 32px;
+  --app-bottom: 14px;
   min-height: 100vh;
   min-height: 100dvh;
-  padding: 26px 32px 14px;
+  padding: calc(var(--app-top) + var(--safe-top)) calc(var(--app-side) + var(--safe-right))
+    calc(var(--app-bottom) + var(--safe-bottom)) calc(var(--app-side) + var(--safe-left));
 }
 .console {
   max-width: 1600px;
@@ -909,7 +917,7 @@ progress::-moz-progress-bar {
   margin: 0;
   border: 0;
   border-left: 1px solid var(--line);
-  padding: 0;
+  padding: var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left);
   background: var(--surface);
   color: var(--text);
   overflow: hidden;
@@ -1079,7 +1087,7 @@ progress::-moz-progress-bar {
 }
 .toast {
   position: fixed;
-  bottom: 24px;
+  bottom: calc(24px + var(--safe-bottom));
   left: 50%;
   transform: translateX(-50%);
   border: 1px solid var(--line);
@@ -1137,7 +1145,7 @@ progress::-moz-progress-bar {
 }
 @media (min-width: 1100px) and (min-height: 850px) {
   .app {
-    padding-top: 34px;
+    --app-top: 34px;
   }
   .topbar {
     padding-bottom: 28px;
@@ -1160,7 +1168,9 @@ progress::-moz-progress-bar {
     min-height: 36px;
   }
   .app {
-    padding: 12px 24px 8px;
+    --app-top: 12px;
+    --app-side: 24px;
+    --app-bottom: 8px;
   }
   .topbar {
     min-height: 84px;
@@ -1208,7 +1218,9 @@ progress::-moz-progress-bar {
 }
 @media (max-width: 1199px) {
   .app {
-    padding: 22px;
+    --app-top: 22px;
+    --app-side: 22px;
+    --app-bottom: 22px;
   }
   .dashboard {
     grid-template-columns: 1fr 1fr;
@@ -1252,7 +1264,9 @@ progress::-moz-progress-bar {
 }
 @media (max-width: 650px) {
   .app {
-    padding: 16px 12px;
+    --app-top: 16px;
+    --app-side: 12px;
+    --app-bottom: 16px;
   }
   .topbar {
     gap: 10px;
@@ -1348,6 +1362,28 @@ progress::-moz-progress-bar {
   }
   .drawer-heading h2 {
     font-size: 1.5rem;
+  }
+}
+@media (max-height: 500px) {
+  .clock-view .drawer-heading {
+    padding: 12px 20px;
+  }
+  .clock-view .drawer-heading h2 {
+    margin-top: 4px;
+    font-size: 1.25rem;
+  }
+  .clock-view .drawer-body {
+    padding: 12px 20px;
+  }
+  .clock-face {
+    gap: 12px;
+  }
+  .clock-face-weekday,
+  .clock-face-date {
+    font-size: 0.875rem;
+  }
+  .clock-face .clock-face-time {
+    font-size: clamp(3rem, min(19vw, 23vh), 8rem);
   }
 }
 @media (prefers-reduced-motion: reduce) {

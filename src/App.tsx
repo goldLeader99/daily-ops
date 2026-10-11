@@ -13,6 +13,8 @@ import { Details } from './features/Details';
 import { CounterSummary } from './features/DayCounter';
 import { useWanTraffic } from './network/useWanTraffic';
 import { Network, NetworkSummary } from './features/Network';
+import { useCloudSync } from './sync/useCloudSync';
+import { useHomeTraffic } from './sync/useHomeTraffic';
 
 export type Section =
   | 'today'
@@ -118,7 +120,10 @@ function PreviewList({
 }
 export function App() {
   const store = useDashboard();
-  const network = useWanTraffic();
+  const cloud = useCloudSync(store.data, store.read, store.saveSynced);
+  const localNetwork = useWanTraffic();
+  const homeNetwork = useHomeTraffic(localNetwork, cloud.linked ? cloud.userId : null);
+  const network = homeNetwork.monitor;
   const [now, setNow] = useState(new Date());
   const [section, setSection] = useState<Section | null>(null);
   const [notice, setNotice] = useState('');
@@ -592,7 +597,11 @@ export function App() {
         <footer className="system-footer">
           <span>
             <span className="live-dot" />{' '}
-            {store.error ? 'STORAGE NEEDS ATTENTION' : 'SAVED ON THIS DEVICE'}
+            {store.error
+              ? 'STORAGE NEEDS ATTENTION'
+              : cloud.linked
+                ? 'CLOUD ' + cloud.status.phase.toUpperCase()
+                : 'SAVED ON THIS DEVICE'}
           </span>
           <span>
             {!online ? 'OFFLINE' : offlineReady ? 'OFFLINE READY' : 'LOCAL MODE'} <b>/</b> DAILY OPS
@@ -612,7 +621,7 @@ export function App() {
           variant={section === 'clock' ? 'clock' : 'drawer'}
         >
           {section === 'network' ? (
-            <Network monitor={network} />
+            <Network monitor={network} home={homeNetwork} />
           ) : (
             <Details
               section={section}
@@ -623,6 +632,7 @@ export function App() {
               restore={store.restore}
               exportRaw={store.exportRaw}
               notify={setNotice}
+              cloud={cloud}
             />
           )}
           {store.error && (

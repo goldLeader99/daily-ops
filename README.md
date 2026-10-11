@@ -1,16 +1,18 @@
 # DAILY OPS
 
-A working, local-first personal command center with a browser/PWA version and a standalone Capacitor Android APK for the Samsung Galaxy Tab A SM-T387W. It preserves the original terminal dashboard built for the Tab S7 FE: thin panel dividers, large touch targets, and an optional subtle CRT overlay. Landscape is the primary layout; the browser also supports portrait and phones.
+A working, local-first personal command center with browser/PWA, iOS, and Android versions. It preserves the original terminal dashboard built for the Tab S7 FE: thin panel dividers, large touch targets, and an optional subtle CRT overlay. The responsive layout supports tablets and phones.
 
 **Android:** see [build, installation, startup, and device checks](docs/ANDROID.md). On this Windows checkout, run `build-android.cmd` to rebuild `artifacts/app-debug.apk`. The installed app bundles its own UI and does not need a laptop server.
 
 **Continuing on a Mac:** follow [Mac setup and transfer instructions](docs/MAC-SETUP.md), then read the [project handoff](docs/MAC-HANDOFF.md). Current XB10 monitoring, verified counters, and connection limitations are recorded in [the network dashboard notes](docs/IPAD-NETWORK-DASHBOARD.md).
 
-**iPad:** Daily Ops 1.2.0 (build 6) is signed and installed on the iPad mini 4, with existing records verified unchanged after the update. NETWORK reads live WAN upload/download counters directly from the XB10, without a Mac collector. Physical network-read confirmation and the remaining device checks are pending. See [iOS instructions, signing expiry, and device checks](docs/IOS.md); the original Mac handoff describes the pre-port snapshot.
+**iPhone and iPad:** Daily Ops 1.3.0 (build 8) is installed on the iPhone 14 Pro and iPad mini 4. Task edits were confirmed in both directions using the same Daily Ops account. See [iOS installation and device checks](docs/IOS.md).
+
+**Cloud sync:** start with the [Supabase quickstart](docs/SUPABASE-QUICKSTART.md), then see [setup, privacy, and verification](docs/CLOUD-SYNC.md). The optional XB10 modem feed remains unavailable; task sync works independently. Before publishing source or sharing backups, read the [security notes](SECURITY.md).
 
 ![Daily Ops landscape dashboard](docs/dashboard-landscape.png)
 
-## What works in version 1
+## What works
 
 - **Today:** add, edit, delete, and check off tasks.
 - **Groceries:** the same checklist controls, with quick checks on the dashboard.
@@ -24,6 +26,7 @@ A working, local-first personal command center with a browser/PWA version and a 
 - **Theme:** tap THEME in the header. Dark, AMOLED, Midnight Blue, Samsung Blue, Dark Red, Light, and Custom; eight editable colors, immediate local saving, and Reset to Default. Dark Red combines near-black panels, muted red accents, and burgundy buttons. Updates preserve your existing theme selection.
 - **Clock view:** tap the date or time to open a large live clock using the current theme. Date and seconds update automatically. Return with Back to dashboard, Escape, or Android Back. Opening the clock does not change your settings.
 - **iPad live network:** WAN download/upload traffic from verified XB10 byte counters, about two-second updates, recent history, and explicit stale/unavailable states. UPnP must be enabled; its service address can change after a restart. The web/Android view explains the current iOS-only direct-reading support.
+- **Optional account sync:** share tasks, workouts, stats, counters, groceries, mileage, projects, shortcuts, and theme between devices. Offline edits are saved locally; competing edits require review. Each account has its own private dashboard. Home modem readings can also be shared when a home device has a working gateway connection.
 - **Android wrapper:** stays awake while active, visible Android navigation by default, optional fullscreen toggle, a HOME button, landscape orientation, Android backup file picker, and external quick-action links. It is a regular app and does not replace the tablet's launcher.
 
 Starter task/grocery lists and project names come from the brief. Health and mileage start empty. Workout exercises are a demonstration plan. Cameras and Local AI open configuration until you give them URLs. Network readings come from the local gateway; unavailable metrics are not fabricated.
@@ -59,7 +62,7 @@ pnpm install --frozen-lockfile
 pnpm dev
 ```
 
-The committed lockfile pins the resolved dependencies. Runtime dependencies are React, React DOM, Capacitor core/Android, and the Capacitor App lifecycle plugin. No database, API key, account, or environment file is required. `npm install` and `npm run build` also work; pnpm is preferred for reproducing the checked-in lockfile.
+The committed lockfile pins the resolved dependencies, including patched build tools. Use the pinned pnpm version to preserve those overrides. Runtime dependencies include React, React DOM, Capacitor, and the Supabase client. Local-only use requires no account or environment file; cloud sync requires the configuration described in [CLOUD-SYNC.md](docs/CLOUD-SYNC.md).
 
 ## Architecture and technology choices
 
@@ -83,7 +86,7 @@ Browser localStorage / Android private preferences (versioned JSON)
 
 **Native HTML:** real checkboxes, labels, forms, selects, progress elements, and a modal dialog supply keyboard support and browser focus behavior. The drawer traps focus, closes with Escape, restores focus, and has visible return controls. Most controls have a minimum 44 px target; form inputs are 48 px.
 
-**Local storage adapters:** the browser uses localStorage for a modest personal MVP containing short records rather than media or large datasets. Android uses private SharedPreferences through a small fixed-key Java bridge. It confirms the disk commit before showing a successful save; testing exposed a WebView localStorage flush delay when force-stopping immediately after a change. Both adapters use the same validated JSON and synchronous repository interface. Storage access is isolated in `src/data`; a future asynchronous database/API repository will require adapting the hook, without rewriting the pure domain rules or every form.
+**Local storage adapters:** the browser uses localStorage, Android uses private SharedPreferences, and iOS uses protected Application Support files. Native saves confirm the disk write before showing success. The adapters use the same validated JSON and repository interface. Optional Supabase sync saves its accepted revision alongside local records and reconciles changes without replacing unreviewed competing edits.
 
 **Small build-generated service worker:** caches only the static application shell. No third-party PWA framework is necessary. User data remains in localStorage. Assets are versioned from their content hash.
 
@@ -96,6 +99,8 @@ Browser localStorage / Android private preferences (versioned JSON)
 ```text
 daily-ops/
   android/                Native Android project, Activity, and local plugin
+  ios/                    Native iOS project, storage, Keychain, and gateway bridges
+  supabase/               Database migrations and account-isolation verification
   capacitor.config.ts     App identity and bundled dist/ directory (no remote URL)
   public/                 App manifest, terminal icon, install icons
   src/
@@ -109,6 +114,7 @@ daily-ops/
     data/nativeStorage.ts Android adapter and one-time WebView data migration
     data/useDashboard.ts  React state, persistence errors, cross-tab refresh
     features/             Detailed screens for the MVP sections
+    sync/                 Authentication, durable merge, cloud and home-feed sync
   scripts/build-sw.mjs     Offline cache generation after a production build
   tests/
     domain.test.ts        Important rules and persistence failure cases
@@ -141,7 +147,7 @@ Browser data lives under **`daily-ops:data:v1`** in localStorage. It survives no
 
 Use **Settings → Export backup** regularly. Restore validates the whole file and asks you to confirm replacement; it does not merge. Backups contain your personal records in plain JSON, so keep them in a location you trust.
 
-Clearing site data, using a private/incognito session, browser eviction, or losing the device can remove records. The optional storage-protection request asks the browser to reduce eviction risk; it cannot replace backups. There is no remote synchronization or server copy in version 1.
+Clearing site data, using a private/incognito session, browser eviction, or losing the device can remove local records. The optional storage-protection request asks the browser to reduce eviction risk; it cannot replace backups. Connected accounts also save their current dashboard in Supabase. This shared copy is not a historical backup; keep separate JSON exports.
 
 ## Tablet, fullscreen, and offline use
 
@@ -194,7 +200,7 @@ pnpm test:browser
 
 Browser verification targets include 1280 × 800 landscape, 800 × 1280 portrait, and 390 × 844 mobile. Physical SM-T387W APK checks are recorded separately in the [device report](docs/ANDROID-VERIFICATION.md).
 
-Current version 1.2.0 verification: 34 Node unit tests, 6 Python gateway-probe tests, and 18 browser tests passed; the signed iPad build and installation passed, and existing saved records were byte-identical after updating. The user reported the installed setup complete on 2026-10-10. Detailed results and remaining per-device checks are recorded in [IOS.md](docs/IOS.md) and [IPAD-NETWORK-DASHBOARD.md](docs/IPAD-NETWORK-DASHBOARD.md).
+Current version 1.3.0 verification: 44 Node unit tests, 6 Python gateway-probe tests, and 20 browser tests passed. Signed builds and installation passed on the iPhone and iPad, with saved records verified unchanged after updating. The user confirmed physical task edits in both directions on 2026-10-10. Detailed results and remaining network checks are recorded in [CLOUD-SYNC.md](docs/CLOUD-SYNC.md), [IOS.md](docs/IOS.md), and [IPAD-NETWORK-DASHBOARD.md](docs/IPAD-NETWORK-DASHBOARD.md).
 
 Earlier baseline verification on 2026-10-08: 24 domain/persistence tests and 12 browser tests passed; the production build and TypeScript checks passed. Coverage includes native storage migration/failure handling and the live clock across midnight. The landscape fit check confirms no page scrolling at 1280 × 800 with the default content. The smaller tablet retains the responsive scrolling layout. Device tests additionally verify visible Home/Recents controls, foreground-only awake behavior, optional fullscreen, and the clock fitting with system navigation visible.
 
@@ -203,10 +209,10 @@ Earlier baseline verification on 2026-10-08: 24 domain/persistence tests and 12 
 Keep each step incremental:
 
 1. **Larger local data:** introduce IndexedDB for extensive workout history, mileage history, and graphs.
-2. **Shared data:** add an authenticated HTTP API with SQLite for a small self-hosted installation. Add server-owned timestamps, migrations, and explicit sync/conflict rules before multi-device use.
+2. **Alternative hosting:** adapt the existing authenticated sync transport for a self-hosted backend if needed, preserving ownership checks, server revisions, and conflict handling.
 3. **Integration adapters:** Google Calendar, weather, Spotify, Home Assistant, camera/farm monitoring, and a local AI/Ollama service. Keep service secrets on a backend; expose a small frontend adapter per integration.
 4. **Device features:** Android notifications, reminders, app deep links, voice input, and a browser wake-lock option. The native Android screen-awake flag is already implemented.
 5. **Richer records:** workout history views, weight graphs, Flex analytics, meal tracking.
-6. **Deployment:** a static Docker image, trusted HTTPS, and a stable host name; then remote access and synchronization if needed.
+6. **Web deployment:** a static Docker image, trusted HTTPS, and a stable host name. Installed iOS apps already connect directly to Supabase without a Mac server.
 
-None of those integrations, analytics, voice, notifications, or synchronization systems is implemented in this MVP.
+Those additional integrations, analytics, voice, notifications, and hosting options remain future work.

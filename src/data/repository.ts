@@ -144,6 +144,20 @@ export function validateData(value: unknown): asserts value is DashboardData {
     !validTheme(value.settings.theme)
   )
     return invalid();
+  if (value.cloudSync !== undefined) {
+    const sync = value.cloudSync;
+    if (
+      !object(sync) ||
+      typeof sync.userId !== 'string' ||
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(sync.userId) ||
+      !Number.isSafeInteger(sync.revision) ||
+      Number(sync.revision) < 1 ||
+      !object(sync.base) ||
+      Object.hasOwn(sync.base, 'cloudSync')
+    )
+      return invalid();
+    validateData(sync.base);
+  }
 }
 export function parseData(raw: string): DashboardData {
   if (raw.length > 4000000) throw new Error('Backup exceeds the 4 MB limit.');
@@ -193,7 +207,13 @@ export function createRepository(storage: StorageAdapter) {
       }
     },
     exportRaw(): string {
-      return storage.getItem(STORAGE_KEY) ?? '';
+      const raw = storage.getItem(STORAGE_KEY) ?? '';
+      try {
+        const { cloudSync, ...content } = parseData(raw);
+        return cloudSync ? JSON.stringify(content) : raw;
+      } catch {
+        return raw;
+      }
     },
     restore(raw: string): DashboardData {
       const data = parseData(raw);

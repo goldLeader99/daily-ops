@@ -29,7 +29,7 @@ export type Project = {
 export type QuickAction = { id: string; name: string; kind: 'url'; target: string };
 export type CounterKind = 'cigarettes' | 'alcohol';
 export type DayCounters = Record<CounterKind, string | null>;
-export type DashboardData = {
+export type DashboardContent = {
   schemaVersion: 1;
   tasks: ChecklistItem[];
   groceries: ChecklistItem[];
@@ -43,6 +43,12 @@ export type DashboardData = {
   quickActions: QuickAction[];
   settings: { crt: boolean; theme: Theme };
 };
+export type CloudSyncState = {
+  userId: string;
+  revision: number;
+  base: DashboardContent;
+};
+export type DashboardData = DashboardContent & { cloudSync?: CloudSyncState };
 export type Exercise = { id: string; name: string; prescription: string };
 export type Workout = { day: number; name: string; focus: string; exercises: Exercise[] };
 const exercises = (rows: [string, string][]): Exercise[] =>

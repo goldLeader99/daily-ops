@@ -12,6 +12,7 @@ import { Settings } from './Settings';
 import { DayCounter } from './DayCounter';
 import { ThemeEditor } from './ThemeEditor';
 import { Clock } from './Clock';
+import type { CloudSync } from '../sync/useCloudSync';
 export type DetailsProps = {
   section: Section;
   data: DashboardData;
@@ -21,6 +22,7 @@ export type DetailsProps = {
   restore: (raw: string) => boolean;
   exportRaw: () => string;
   notify: (text: string) => void;
+  cloud: CloudSync;
 };
 export function Details(props: DetailsProps) {
   const { section, data, commit } = props;

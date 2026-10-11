@@ -1,6 +1,7 @@
 import Capacitor
 import UIKit
 import WebKit
+import Security
 
 // A narrow prompt bridge preserves the existing synchronous repository contract.
 // Writes complete atomically before JavaScript can acknowledge a successful save.
@@ -24,6 +25,12 @@ final class DashboardViewController: CAPBridgeViewController {
           Object.defineProperty(window, 'DailyOpsStorage', { value: Object.freeze({
             read: () => invoke('read'),
             write: (value) => invoke('write', value)
+          }) });
+          Object.defineProperty(window, 'DailyOpsSyncStorage', { value: Object.freeze({
+            readSession: () => invoke('read-session'),
+            writeSession: (value) => invoke('write-session', value ?? ''),
+            preserveBackup: (value) => invoke('preserve-backup', value),
+            readBackup: () => invoke('read-backup')
           }) });
         }
         """
@@ -75,6 +82,27 @@ final class DashboardStorageDelegate: NSObject, WKUIDelegate {
                 }
                 try data.write(to: file, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
                 result = ["value": true]
+            case "daily-ops-storage:read-session":
+                result = ["value": try readSession() as Any? ?? NSNull()]
+            case "daily-ops-storage:write-session":
+                guard let text = defaultText, text.utf8.count <= 100_000 else {
+                    throw NSError(domain: "DailyOps", code: 2)
+                }
+                try writeSession(text.isEmpty ? nil : text)
+                result = ["value": true]
+            case "daily-ops-storage:preserve-backup":
+                let backup = directory.appendingPathComponent("daily-ops-before-sync-v1.json")
+                if !FileManager.default.fileExists(atPath: backup.path) {
+                    guard let text = defaultText, let data = text.data(using: .utf8), data.count <= 4_000_000 else {
+                        throw NSError(domain: "DailyOps", code: 3)
+                    }
+                    try data.write(to: backup, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
+                }
+                result = ["value": true]
+            case "daily-ops-storage:read-backup":
+                let backup = directory.appendingPathComponent("daily-ops-before-sync-v1.json")
+                result = ["value": FileManager.default.fileExists(atPath: backup.path)
+                    ? try String(contentsOf: backup, encoding: .utf8) : NSNull()]
             default: result = ["error": "Unsupported storage operation."]
             }
         } catch {
@@ -82,6 +110,42 @@ final class DashboardStorageDelegate: NSObject, WKUIDelegate {
         }
         let data = try? JSONSerialization.data(withJSONObject: result)
         completionHandler(data.flatMap { String(data: $0, encoding: .utf8) })
+    }
+
+    private var sessionQuery: [String: Any] {
+        [kSecClass as String: kSecClassGenericPassword,
+         kSecAttrService as String: "com.dailyops.dashboard.sync",
+         kSecAttrAccount as String: "supabase-session-v1"]
+    }
+    private func readSession() throws -> String? {
+        var query = sessionQuery
+        query[kSecReturnData as String] = true
+        query[kSecMatchLimit as String] = kSecMatchLimitOne
+        var item: CFTypeRef?
+        let status = SecItemCopyMatching(query as CFDictionary, &item)
+        if status == errSecItemNotFound { return nil }
+        guard status == errSecSuccess, let data = item as? Data,
+              let text = String(data: data, encoding: .utf8) else {
+            throw NSError(domain: NSOSStatusErrorDomain, code: Int(status))
+        }
+        return text
+    }
+    private func writeSession(_ text: String?) throws {
+        guard let text = text else {
+            let status = SecItemDelete(sessionQuery as CFDictionary)
+            guard status == errSecSuccess || status == errSecItemNotFound else {
+                throw NSError(domain: NSOSStatusErrorDomain, code: Int(status))
+            }
+            return
+        }
+        let attributes: [String: Any] = [
+            kSecValueData as String: Data(text.utf8),
+            kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly]
+        var status = SecItemUpdate(sessionQuery as CFDictionary, attributes as CFDictionary)
+        if status == errSecItemNotFound {
+            status = SecItemAdd(sessionQuery.merging(attributes) { _, new in new } as CFDictionary, nil)
+        }
+        guard status == errSecSuccess else { throw NSError(domain: NSOSStatusErrorDomain, code: Int(status)) }
     }
 }
 
